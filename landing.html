@@ -1,0 +1,62 @@
+<html>
+
+<head>
+   <title>Gps demo</title>
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" />
+   <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
+   <script>
+      $(document).ready(function () {
+         var mymap = L.map('map').setView([29.659416, 52.486275], 13);
+         var marker = {};
+         L.tileLayer(
+            'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoicmV6YWZ4MjAwMCIsImEiOiJjamhqMjd6bmUyZjM1M2NtN2o4d2dycnhuIn0.nTY3UW2drcRcx5H8seYpiw', {
+               maxZoom: 18,
+               attribution: 'Reza Hosseini.',
+               id: 'mapbox.streets'
+            }).addTo(mymap);
+         var locations = [];
+         $.ajax({
+            url: '/getHistory',
+            method: 'GET',
+            success: msg => {
+               if (msg.length > 0) {
+                  locations.push(msg);
+                  marker = L.marker(msg[msg.length - 1]).addTo(mymap)
+                     .bindPopup('مکان فعلی ')
+                     .openPopup();
+                  if (msg.length > 1) {
+                     var polyline = L.polyline(msg, {
+                        color: 'red'
+                     });
+                     polyline.addTo(mymap);
+                  }
+
+               }
+            }
+         });
+
+         var evtSource = new EventSource('/stream');
+         evtSource.onmessage = function (e) {
+            if (typeof e.data != 'undefined') {
+               mymap.removeLayer(marker);
+               // mymap.removeLayer(polyline);
+               locations.push(JSON.parse(e.data));
+               marker = L.marker(JSON.parse(e.data)).addTo(mymap)
+                  .bindPopup('مکان فعلی ')
+                  .openPopup();
+               var polyline = L.polyline(locations, {
+                  color: 'red'
+               });
+               polyline.addTo(mymap);
+            }
+         }
+      });
+   </script>
+</head>
+
+<body>
+   <div class="map" id="map" style="width:100%;height:900px;"></div>
+</body>
+
+</html>
